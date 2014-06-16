@@ -38,6 +38,7 @@ namespace VB6Extensions.Lexer
         public Comment(string instruction)
             : base(CommentMarker, instruction)
         {
+            _instruction = instruction;
         }
 
         private string _instruction;
