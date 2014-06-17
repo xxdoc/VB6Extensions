@@ -606,4 +606,7 @@
   <data name="Enum" xml:space="preserve">
     <value>Enum</value>
   </data>
+  <data name="Attribute" xml:space="preserve">
+    <value>Attribute</value>
+  </data>
 </root>

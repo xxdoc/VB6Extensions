@@ -31,11 +31,43 @@ namespace VB6Extensions.Lexer
         public abstract bool TryParse(string instruction, out IToken token);
     }
 
-    public class Comment : Token
+    public class ProcedureCallToken : Token
+    {
+        public ProcedureCallToken(string instruction)
+            : base(instruction.Trim().Split(' ')[0], instruction)
+        { }
+
+        public override bool TryParse(string instruction, out IToken token)
+        {
+            token = new ProcedureCallToken(instruction);
+            return true;
+        }
+    }
+
+    public class ExpressionToken : Token
+    {
+        public ExpressionToken(string instruction)
+            : base("=", instruction)
+        { }
+
+        public override bool TryParse(string instruction, out IToken token)
+        {
+            if (!instruction.Contains('=') || instruction.StartsWith("'"))
+            {
+                token = null;
+                return false;
+            }
+
+            token = new ExpressionToken(instruction);
+            return true;
+        }
+    }
+
+    public class CommentLineToken : Token
     {
         public static readonly string CommentMarker = "'";
 
-        public Comment(string instruction)
+        public CommentLineToken(string instruction)
             : base(CommentMarker, instruction)
         {
             _instruction = instruction;
@@ -64,16 +96,16 @@ namespace VB6Extensions.Lexer
                 return false;
             }
 
-            token = new Comment(instruction);
+            token = new CommentLineToken(instruction);
             return true;
         }
     }
 
-    public class Label : Token
+    public class LabelToken : Token
     {
         public static readonly string LabelMarker = ":";
 
-        public Label(string instruction)
+        public LabelToken(string instruction)
             : base(LabelMarker, instruction)
         {
         }
@@ -112,12 +144,32 @@ namespace VB6Extensions.Lexer
                 return false;
             }
 
-            token = new Label(instruction);
+            token = new LabelToken(instruction);
             return true;
         }
     }
 
-    public class Declaration : Token
+    public class AttributeToken : Token
+    {
+        public AttributeToken(string keyword, string instruction)
+            : base(Keywords.Attribute, instruction)
+        { }
+
+        public override bool TryParse(string instruction, out IToken token)
+        {
+            var noIndent = instruction.TrimStart();
+            if (!noIndent.StartsWith(Keyword))
+            {
+                token = null;
+                return false;
+            }
+
+            token = new AttributeToken(Keyword, instruction);
+            return true;
+        }
+    }
+
+    public class DeclarationToken : Token
     {
         private readonly string[] _keywords = new[] 
                                 {
@@ -136,7 +188,7 @@ namespace VB6Extensions.Lexer
                                     Keywords.Sub
                                 };
 
-        public Declaration(string keyword, string instruction)
+        public DeclarationToken(string keyword, string instruction)
             : base(keyword, instruction)
         { }
 
@@ -144,18 +196,24 @@ namespace VB6Extensions.Lexer
         {
             var noIndent = instruction.TrimStart();
             var keyword = _keywords.FirstOrDefault(k => noIndent.StartsWith(k + " "));
-            if (keyword == null)
+            if (keyword == null && !noIndent.Contains(Keywords.As))
             {
                 token = null;
                 return false;
             }
+            else if (noIndent.Contains(Keywords.As) && !noIndent.Contains('#') && !noIndent.Contains('='))
+            {
+                // member declaration. "Public" keyword used only for semantics.
+                token = new DeclarationToken(Keywords.Public, instruction);
+                return true;
+            }
 
-            token = new Declaration(keyword, instruction);
+            token = new DeclarationToken(keyword, instruction);
             return true;
         }
     }
 
-    public class Instruction : Token
+    public class InstructionToken : Token
     {
         private readonly string[] _keywords = new[] 
                                 {
@@ -194,7 +252,7 @@ namespace VB6Extensions.Lexer
                                     Keywords.Write
                                 };
 
-        public Instruction(string keyword, string instruction)
+        public InstructionToken(string keyword, string instruction)
             : base(keyword, instruction)
         { }
 
@@ -208,12 +266,12 @@ namespace VB6Extensions.Lexer
                 return false;
             }
 
-            token = new Instruction(keyword, instruction);
+            token = new InstructionToken(keyword, instruction);
             return true;
         }
     }
 
-    public class Statement : Token
+    public class StatementToken : Token
     {
         private readonly string[] _keywords = new[] 
                                 {
@@ -230,7 +288,7 @@ namespace VB6Extensions.Lexer
                                     Keywords.With + " "
                                 };
 
-        public Statement(string keyword, string instruction)
+        public StatementToken(string keyword, string instruction)
             : base(keyword, instruction)
         { }
 
@@ -244,7 +302,7 @@ namespace VB6Extensions.Lexer
                 return false;
             }
 
-            token = new Statement(keyword, instruction);
+            token = new StatementToken(keyword, instruction);
             return true;
         }
     }

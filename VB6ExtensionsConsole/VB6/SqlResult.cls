@@ -17,7 +17,7 @@ Private Type tSqlResult
     ToStringValueSeparator As String
 End Type
 
-Private nameIndices As New Atis.Dictionary
+Private nameIndices As New Dictionary
 
 Private this As tSqlResult
 Option Explicit

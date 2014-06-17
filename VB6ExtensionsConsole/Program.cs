@@ -13,11 +13,11 @@ namespace VB6ExtensionsConsole
         static void Main(string[] args)
         {
             var tokenizer = new Tokenizer();
-            var tokens = tokenizer.Tokenize(File.ReadAllLines(@"VB6\SqlCommand.cls"));
+            var tokens = tokenizer.Tokenize(File.ReadAllLines(@"VB6\StringHelper.cls"));
 
             foreach (var token in tokens)
             {
-                Console.WriteLine(string.Format("{0}: [{1}] {2}", token.ToString(), token.Keyword, token.Instruction));
+                Console.WriteLine(string.Format("{0}: [{1}] {2}", token.GetType().Name, token.Keyword, token.Instruction));
             }
 
             Console.ReadLine();

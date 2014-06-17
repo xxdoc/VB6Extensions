@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VB6Extensions.Properties;
 
 namespace VB6Extensions.Lexer
 {
@@ -16,19 +17,26 @@ namespace VB6Extensions.Lexer
         public static readonly string LineContinuation = "_";
         public static readonly string InstructionSeparator = ":";
 
-        private static readonly Comment _commentLexer = new Comment(string.Empty);
-        private static readonly Label _labelLexer = new Label(string.Empty);
-        private static readonly Declaration _declarationLexer = new Declaration(string.Empty, string.Empty);
-        private static readonly Instruction _instructionLexer = new Instruction(string.Empty, string.Empty);
-        private static readonly Statement _statementLexer = new Statement(string.Empty, string.Empty);
+        private static readonly AttributeToken _attributeLexer = new AttributeToken(string.Empty, string.Empty);
+        private static readonly CommentLineToken _commentLexer = new CommentLineToken(string.Empty);
+        private static readonly LabelToken _labelLexer = new LabelToken(string.Empty);
+        private static readonly DeclarationToken _declarationLexer = new DeclarationToken(string.Empty, string.Empty);
+        private static readonly InstructionToken _instructionLexer = new InstructionToken(string.Empty, string.Empty);
+        private static readonly StatementToken _statementLexer = new StatementToken(string.Empty, string.Empty);
+        private static readonly ExpressionToken _expressionLexer = new ExpressionToken(string.Empty);
+        private static readonly ProcedureCallToken _callLexer = new ProcedureCallToken(string.Empty);
 
         public IEnumerable<IToken> Tokenize(string[] content)
         {
             var builder = new StringBuilder();
+            var lineCount = 0;
             foreach (var line in content.Select(code => code.Trim()))
             {
-                if (string.IsNullOrEmpty(line))
+                lineCount++;
+                if (string.IsNullOrEmpty(line) || lineCount <= 13) // todo: find a better way to tokenize or skip file header
+                {
                     continue;
+                }
 
                 var allButLastCharacter = line.Substring(0, line.Length - 1);
                 if (allButLastCharacter.Contains(InstructionSeparator)) // todo: escape strings
@@ -52,10 +60,13 @@ namespace VB6Extensions.Lexer
                 var text = builder.ToString();
                 IToken token;
                 if (!_commentLexer.TryParse(text, out token)
+                    && !_attributeLexer.TryParse(text, out token)
                     && !_labelLexer.TryParse(text, out token)
                     && !_declarationLexer.TryParse(text, out token)
                     && !_instructionLexer.TryParse(text, out token)
-                    && !_statementLexer.TryParse(text, out token))
+                    && !_statementLexer.TryParse(text, out token)
+                    && !_expressionLexer.TryParse(text, out token)
+                    && !_callLexer.TryParse(text, out token))
                 {
                     token = null;
                 }
