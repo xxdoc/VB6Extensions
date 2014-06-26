@@ -143,7 +143,8 @@ namespace VB6Extensions.Parser
                         {
                             var keyword = match.Groups["keyword"].Captures[2].Value;
                             var node = new PropertyNode(modifier, match.Groups["name"].Value,
-                                                        keyword, match.Groups["parameters"].Value);
+                                                        keyword, match.Groups["parameters"].Value,
+                                                        match.Groups["type"].Value);
                             result.Add(node);
                         }
                     }
@@ -153,7 +154,8 @@ namespace VB6Extensions.Parser
                         {
                             var keyword = match.Groups["keyword"].Captures[1].Value;
                             var node = new PropertyNode(null, match.Groups["name"].Value,
-                                                        keyword, match.Groups["parameters"].Value);
+                                                        keyword, match.Groups["parameters"].Value,
+                                                        match.Groups["type"].Value);
                             result.Add(node);
                         }
                     }
@@ -168,7 +170,7 @@ namespace VB6Extensions.Parser
 
     public class PropertyNode : ISyntaxTree
     {
-        public PropertyNode(string modifier, string name, string keyword, string parameters)
+        public PropertyNode(string modifier, string name, string keyword, string parameters, string type)
         {
             Modifier = string.IsNullOrEmpty(modifier)
                 ? (AccessModifier?)null
@@ -177,7 +179,10 @@ namespace VB6Extensions.Parser
             Name = name;
             Accessor = keyword;
 
-            Nodes = new List<ISyntaxTree>(); // todo: parse parameter nodes.
+            Nodes = new List<ISyntaxTree>
+            {
+                new IdentifierNode(name, null, null, type)
+            };
         }
 
         public AccessModifier? Modifier { get; private set; }
