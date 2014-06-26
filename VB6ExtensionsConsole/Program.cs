@@ -13,7 +13,7 @@ namespace VB6ExtensionsConsole
         static void Main(string[] args)
         {
             var tokenizer = new CodeFileParser();
-            var tree = tokenizer.Parse(@"VB6\SqlResult.cls");
+            var tree = tokenizer.Parse(@"VB6\StringHelper.cls");
 
             Console.WriteLine(tree.Name);
             foreach (var node in tree.Nodes)

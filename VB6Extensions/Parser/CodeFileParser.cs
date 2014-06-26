@@ -128,7 +128,7 @@ namespace VB6Extensions.Parser
         {
             var result = new List<ISyntaxTree>();
 
-            var pattern = @"((?<keyword>Public|Private|Friend)\s)?(?<keyword>Property|Function|Sub)\s+(?<keyword>Get|Let|Set)\s+(?<name>[a-zA-Z][a-zA-Z0-9_]*)(\((?<parameters>.*)\))?(\s+As\s+(?<type>.*))?$";
+            var pattern = @"((?<keyword>Public|Private|Friend)\s)?(?<keyword>Property|Function|Sub)\s+((?<keyword>Get|Let|Set)\s+)?(?<name>[a-zA-Z][a-zA-Z0-9_]*)(\((?<Parameters>.*)\))?(\s+As\s+(?<type>.*))?$";
             var regex = new Regex(pattern);
 
             while (currentLine < content.Length)
@@ -147,6 +147,14 @@ namespace VB6Extensions.Parser
                                                         match.Groups["type"].Value);
                             result.Add(node);
                         }
+                        else
+                        {
+                            var keyword = match.Groups["keyword"].Captures[1].Value;
+                            var node = new MethodNode(modifier, match.Groups["name"].Value,
+                                                        keyword, match.Groups["parameters"].Value,
+                                                        match.Groups["type"].Value);
+                            result.Add(node);
+                        }
                     }
                     else
                     {
@@ -154,6 +162,14 @@ namespace VB6Extensions.Parser
                         {
                             var keyword = match.Groups["keyword"].Captures[1].Value;
                             var node = new PropertyNode(null, match.Groups["name"].Value,
+                                                        keyword, match.Groups["parameters"].Value,
+                                                        match.Groups["type"].Value);
+                            result.Add(node);
+                        }
+                        else
+                        {
+                            var keyword = match.Groups["keyword"].Captures[1].Value;
+                            var node = new MethodNode(null, match.Groups["name"].Value,
                                                         keyword, match.Groups["parameters"].Value,
                                                         match.Groups["type"].Value);
                             result.Add(node);
@@ -181,7 +197,34 @@ namespace VB6Extensions.Parser
 
             Nodes = new List<ISyntaxTree>
             {
-                new IdentifierNode(name, null, null, type)
+                new IdentifierNode(name, null, null, type) // todo: add body/content here
+            };
+        }
+
+        public AccessModifier? Modifier { get; private set; }
+
+        public string Accessor { get; private set; }
+        public string Name { get; private set; }
+
+        public IEnumerable<IAttribute> Attributes { get; private set; }
+
+        public IList<ISyntaxTree> Nodes { get; private set; }
+    }
+
+    public class MethodNode : ISyntaxTree
+    {
+        public MethodNode(string modifier, string name, string keyword, string parameters, string type)
+        {
+            Modifier = string.IsNullOrEmpty(modifier)
+                ? (AccessModifier?)null
+                : (AccessModifier)Enum.Parse(typeof(AccessModifier), modifier);
+
+            Name = name;
+            Accessor = keyword;
+
+            Nodes = new List<ISyntaxTree>
+            {
+                new IdentifierNode(name, null, null, type) // todo: add body/content here
             };
         }
 
