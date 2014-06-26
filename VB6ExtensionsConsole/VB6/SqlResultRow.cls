@@ -58,11 +58,14 @@ Attribute Item.VB_UserMemId = 0
 End Property
 
 Private Function GetFieldValueByName(ByVal name As String) As Variant
-    If Not this.IsEmpty Then GetFieldValueByName = this.Values(this.ParentResult.FieldNameIndex(name))
+    If Not this.IsEmpty Then _
+        GetFieldValueByName = _
+        this.Values(this.ParentResult.FieldNameIndex(name))
 End Function
 
 Private Function GetFieldValueByIndex(ByVal index As Integer) As Variant
-    If Not this.IsEmpty Then GetFieldValueByIndex = this.Values(index)
+    If Not this.IsEmpty Then _
+        GetFieldValueByIndex = this.Values(index)
 End Function
 
 Public Function Create(parent As SqlResult, fields As ADODB.fields) As SqlResultRow

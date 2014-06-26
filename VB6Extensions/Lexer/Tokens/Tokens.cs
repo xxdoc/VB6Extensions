@@ -5,32 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Keywords = VB6Extensions.Properties.ReservedKeywords;
 
-namespace VB6Extensions.Lexer
+namespace VB6Extensions.Lexer.Tokens
 {
-    public interface IToken
-    {
-        string Instruction { get; }
-        string Keyword { get; }
-        bool TryParse(string instruction, out IToken token);
-    }
-
-    public abstract class Token : IToken
-    {
-        protected Token(string keyword, string instruction)
-        {
-            _keyword = keyword;
-            _instruction = instruction;
-        }
-
-        private readonly string _instruction;
-        public virtual string Instruction { get { return _instruction; } }
-
-        private readonly string _keyword;
-        public virtual string Keyword { get { return _keyword; } }
-
-        public abstract bool TryParse(string instruction, out IToken token);
-    }
-
     public class ProcedureCallToken : Token
     {
         public ProcedureCallToken(string instruction)
@@ -104,10 +80,12 @@ namespace VB6Extensions.Lexer
     public class LabelToken : Token
     {
         public static readonly string LabelMarker = ":";
+        private string _label;
 
-        public LabelToken(string instruction)
+        public LabelToken(string instruction, string label)
             : base(LabelMarker, instruction)
         {
+            _label = label;
         }
 
         public bool IsCaseLabel 
@@ -127,10 +105,20 @@ namespace VB6Extensions.Lexer
             }
         }
 
+        public string Label
+        {
+            get { return _label; }
+            set 
+            {
+                if (!value.TrimEnd().EndsWith(LabelMarker))
+                    throw new ArgumentException("Label must end with label marker.");
+
+                _label = value;
+            }
+        }
+
         public void SetContent(string label)
         {
-            if (!label.TrimEnd().EndsWith(LabelMarker))
-                throw new ArgumentException("Label must end with label marker.");
 
             _instruction = label;
         }
@@ -144,7 +132,7 @@ namespace VB6Extensions.Lexer
                 return false;
             }
 
-            token = new LabelToken(instruction);
+            token = new LabelToken(instruction, trimmed.Substring(0, trimmed.Remove(trimmed.IndexOf(LabelMarker)).Length));
             return true;
         }
     }

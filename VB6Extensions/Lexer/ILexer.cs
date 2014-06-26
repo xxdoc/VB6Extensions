@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VB6Extensions.Lexer.Tokens;
 using VB6Extensions.Properties;
 
 namespace VB6Extensions.Lexer
@@ -14,12 +15,12 @@ namespace VB6Extensions.Lexer
 
     public class Tokenizer : ILexer
     {
-        public static readonly string LineContinuation = "_";
-        public static readonly string InstructionSeparator = ":";
+        public static readonly char LineContinuation = '_';
+        public static readonly char InstructionSeparator = ':';
 
         private static readonly AttributeToken _attributeLexer = new AttributeToken(string.Empty, string.Empty);
         private static readonly CommentLineToken _commentLexer = new CommentLineToken(string.Empty);
-        private static readonly LabelToken _labelLexer = new LabelToken(string.Empty);
+        private static readonly LabelToken _labelLexer = new LabelToken(string.Empty, string.Empty);
         private static readonly DeclarationToken _declarationLexer = new DeclarationToken(string.Empty, string.Empty);
         private static readonly InstructionToken _instructionLexer = new InstructionToken(string.Empty, string.Empty);
         private static readonly StatementToken _statementLexer = new StatementToken(string.Empty, string.Empty);
@@ -27,6 +28,70 @@ namespace VB6Extensions.Lexer
         private static readonly ProcedureCallToken _callLexer = new ProcedureCallToken(string.Empty);
 
         public IEnumerable<IToken> Tokenize(string[] content)
+        {
+            for (int i = 0; i < content.Length; i++)
+            {
+                var line = content[i].Trim();
+                if (string.IsNullOrEmpty(line))
+                {
+                    continue;
+                }
+
+                var instructionBuilder = new StringBuilder();
+                var currentLine = i;
+                while (line.EndsWith(LineContinuation.ToString()) && currentLine + 1 <= content.Length)
+                {
+                    var instruction = " " + line.Substring(0, line.Length - 1).Trim();
+                    instructionBuilder.Append(instruction);
+                    currentLine++;
+                    line = content[currentLine];
+                }
+
+                if (i != currentLine)
+                {
+                    line = " " + content[currentLine].Trim();
+                    instructionBuilder.Append(line);
+                }
+
+                i = currentLine;
+                var instructions = instructionBuilder.ToString();
+                if (string.IsNullOrEmpty(instructions))
+                {
+                    instructions = line;
+                }
+
+                IToken token = null;
+                if (instructions.EndsWith(InstructionSeparator.ToString())
+                    && instructions.Count(c => c == InstructionSeparator) == 1)
+                {
+                    yield return new LabelToken(instructions, instructions.Remove(instructions.Length));
+                }
+                else
+                {
+                    var splitInstructions = instructions.Split(InstructionSeparator);
+                    foreach (var instruction in splitInstructions)
+                    {
+                        if (!_commentLexer.TryParse(instruction, out token)
+                            && !_attributeLexer.TryParse(instruction, out token)
+                            && !_declarationLexer.TryParse(instruction, out token)
+                            && !_instructionLexer.TryParse(instruction, out token)
+                            && !_statementLexer.TryParse(instruction, out token)
+                            && !_expressionLexer.TryParse(instruction, out token)
+                            && !_callLexer.TryParse(instruction, out token))
+                        {
+                            token = null;
+                        }
+
+                        if (token != null)
+                        {
+                            yield return token;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<IToken> FirstPass(string[] content)
         {
             var builder = new StringBuilder();
             var lineCount = 0;
@@ -41,13 +106,13 @@ namespace VB6Extensions.Lexer
                 var allButLastCharacter = line.Substring(0, line.Length - 1);
                 if (allButLastCharacter.Contains(InstructionSeparator)) // todo: escape strings
                 {
-                    var instructions = allButLastCharacter.Split(InstructionSeparator[0]);
+                    var instructions = allButLastCharacter.Split(InstructionSeparator);
                     foreach (var instruction in instructions)
                     {
                         builder.AppendLine(instruction); // todo: test when last instruction has line continuation character.
                     }
                 }
-                else if (line.EndsWith(LineContinuation))
+                else if (line.EndsWith(LineContinuation.ToString()))
                 {
                     builder.Append(allButLastCharacter);
                     continue;
@@ -56,7 +121,7 @@ namespace VB6Extensions.Lexer
                 {
                     builder.AppendLine(line);
                 }
-                
+
                 var text = builder.ToString();
                 IToken token;
                 if (!_commentLexer.TryParse(text, out token)
