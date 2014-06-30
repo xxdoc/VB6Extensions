@@ -151,11 +151,29 @@ namespace VB6Extensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ByRef.
+        /// </summary>
+        internal static string ByRef {
+            get {
+                return ResourceManager.GetString("ByRef", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Byte.
         /// </summary>
         internal static string Byte {
             get {
                 return ResourceManager.GetString("Byte", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ByVal.
+        /// </summary>
+        internal static string ByVal {
+            get {
+                return ResourceManager.GetString("ByVal", resourceCulture);
             }
         }
         
@@ -1015,6 +1033,15 @@ namespace VB6Extensions.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Optional.
+        /// </summary>
+        internal static string Optional {
+            get {
+                return ResourceManager.GetString("Optional", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Or.
         /// </summary>
         internal static string Or {
@@ -1029,6 +1056,15 @@ namespace VB6Extensions.Properties {
         internal static string Output {
             get {
                 return ResourceManager.GetString("Output", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ParamArray.
+        /// </summary>
+        internal static string ParamArray {
+            get {
+                return ResourceManager.GetString("ParamArray", resourceCulture);
             }
         }
         

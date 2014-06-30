@@ -12,8 +12,6 @@ namespace VB6ExtensionsConsole
     {
         static void Main(string[] args)
         {
-            var tokenizer = new CodeFileParser();
-            var tree = tokenizer.Parse(@"VB6\StringHelper.cls");
 
             Console.WriteLine(tree.Name);
             foreach (var node in tree.Nodes)
@@ -41,8 +39,6 @@ namespace VB6ExtensionsConsole
 
             foreach (var item in node.Nodes)
             {
-                Console.WriteLine(new string('\t', depth) + "{0}: {1}", item.GetType().Name, item.Name);
-
                 if (item.Nodes != null && item.Nodes.Any())
                 {
                     RecursivePrint(item, depth + 1);

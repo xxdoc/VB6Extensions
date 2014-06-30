@@ -609,4 +609,16 @@
   <data name="Attribute" xml:space="preserve">
     <value>Attribute</value>
   </data>
+  <data name="Optional" xml:space="preserve">
+    <value>Optional</value>
+  </data>
+  <data name="ByRef" xml:space="preserve">
+    <value>ByRef</value>
+  </data>
+  <data name="ByVal" xml:space="preserve">
+    <value>ByVal</value>
+  </data>
+  <data name="ParamArray" xml:space="preserve">
+    <value>ParamArray</value>
+  </data>
 </root>

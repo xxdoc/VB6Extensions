@@ -128,7 +128,7 @@ namespace VB6Extensions.Parser
         {
             var result = new List<ISyntaxTree>();
 
-            var pattern = @"((?<keyword>Public|Private|Friend)\s)?(?<keyword>Property|Function|Sub)\s+((?<keyword>Get|Let|Set)\s+)?(?<name>[a-zA-Z][a-zA-Z0-9_]*)(\((?<Parameters>.*)\))?(\s+As\s+(?<type>.*))?$";
+            var pattern = @"((?<keyword>Public|Private|Friend)\s)?(?<keyword>Property|Function|Sub)\s+((?<keyword>Get|Let|Set)\s+)?(?<name>[a-zA-Z][a-zA-Z0-9_]*)(\((?<parameters>.*)\))?(\s+As\s+(?<type>.*))?$";
             var regex = new Regex(pattern);
 
             while (currentLine < content.Length)
@@ -195,10 +195,11 @@ namespace VB6Extensions.Parser
             Name = name;
             Accessor = keyword;
 
-            Nodes = new List<ISyntaxTree>
+            Nodes = new List<ISyntaxTree> { new IdentifierNode(name, type) };
+            foreach (var node in ParameterNode.Parse(parameters))
             {
-                new IdentifierNode(name, null, null, type) // todo: add body/content here
-            };
+                Nodes.Add(node);
+            }
         }
 
         public AccessModifier? Modifier { get; private set; }
@@ -222,10 +223,14 @@ namespace VB6Extensions.Parser
             Name = name;
             Accessor = keyword;
 
-            Nodes = new List<ISyntaxTree>
+            Nodes = new List<ISyntaxTree> { new IdentifierNode(name, type) };
+            if (!string.IsNullOrWhiteSpace(parameters))
             {
-                new IdentifierNode(name, null, null, type) // todo: add body/content here
-            };
+                foreach (var node in ParameterNode.Parse(parameters))
+                {
+                    Nodes.Add(node);
+                }
+            }
         }
 
         public AccessModifier? Modifier { get; private set; }
@@ -236,6 +241,75 @@ namespace VB6Extensions.Parser
         public IEnumerable<IAttribute> Attributes { get; private set; }
 
         public IList<ISyntaxTree> Nodes { get; private set; }
+    }
+
+    public enum ParameterType
+    {
+        Default,
+        ByRef,
+        ByVal
+    }
+
+
+    public class ParameterNode: ISyntaxTree
+    {
+        private static readonly string pattern = @"((?<optional>Optional)\s)?((?<by>ByRef|ByVal)\s)?((?<paramarray>ParamArray)\s)?((?<identifier>[a-zA-Z][_a-zA-Z0-9]*(\(\))?)\s?)(As\s(?<type>[a-zA-Z][_a-zA-Z0-9]*\.?[a-zA-Z][_a-zA-Z0-9]*)?)?(\s\=\s(?<default>[a-zA-Z][_a-zA-Z0-9]*))?";
+        private static readonly Regex regex = new Regex(pattern);
+
+        public ParameterNode(IdentifierNode identifier, ParameterType passedBy, bool isParamArray, bool isOptional, string defaultValue)
+        {
+            Name = identifier.Name;
+
+            Nodes = new List<ISyntaxTree>
+            {
+                identifier
+            };
+
+            IsOptional = isOptional;
+            DefaultValue = defaultValue;
+            IsParamArray = isParamArray;
+            PassedBy = passedBy;
+        }
+
+        public ParameterType PassedBy { get; private set; }
+
+        public bool IsOptional { get; private set; }
+        public string DefaultValue { get; private set; }
+
+        public bool IsParamArray { get; private set; }
+        public string Name { get; private set; }
+
+        public IEnumerable<IAttribute> Attributes { get; private set; }
+        public IList<ISyntaxTree> Nodes { get; private set; }
+
+        public static IEnumerable<ParameterNode> Parse(string parameters)
+        {
+            var matches = regex.Matches(parameters);
+
+            foreach (Match match in matches)
+            {
+                if (!match.Success)
+                {
+                    continue;
+                }
+
+                var optional = match.Groups["optional"].Value == ReservedKeywords.Optional;
+                var defaultValue = match.Groups["default"].Value;
+
+                var paramArray = match.Groups["paramarray"].Value == ReservedKeywords.ParamArray;
+
+                var by = match.Groups["by"].Value;
+                var passedBy = by == ReservedKeywords.ByRef ? ParameterType.ByRef
+                                                            : by == ReservedKeywords.ByVal ? ParameterType.ByVal
+                                                                                           : ParameterType.Default;
+
+                var name = match.Groups["identifier"].Value;
+                var type = match.Groups["type"].Value;
+                var identifier = new IdentifierNode(name, paramArray ? "()" : null, null, type);
+
+                yield return new ParameterNode(identifier, passedBy, paramArray, optional, defaultValue);
+            }
+        }
     }
 
     public class ModuleNode : ISyntaxTree
@@ -278,6 +352,11 @@ namespace VB6Extensions.Parser
 
     public class IdentifierNode : ISyntaxTree
     {
+        public IdentifierNode(string identifier, string type)
+            : this(identifier, null, null, type)
+        {
+        }
+
         public IdentifierNode(string identifier, string arraySizeSpecifier, string initializer, string type)
         {
             Name = identifier;
@@ -291,7 +370,8 @@ namespace VB6Extensions.Parser
             {
                 Nodes.Add(new InitializerNode(initializer, type));
             }
-            else if (!string.IsNullOrEmpty(type))
+            
+            if (!string.IsNullOrEmpty(type))
             {
                 Nodes.Add(new ReferenceNode(type));
             }
@@ -311,6 +391,7 @@ namespace VB6Extensions.Parser
         public ArraySyntaxNode(string specifier)
         {
             Name = specifier;
+            Nodes = new List<ISyntaxTree>();
         }
 
         public string Name { get; private set; }
@@ -325,6 +406,7 @@ namespace VB6Extensions.Parser
         public ReferenceNode(string type)
         {
             Name = type;
+            Nodes = new List<ISyntaxTree>();
         }
 
         public string Name { get; private set; }

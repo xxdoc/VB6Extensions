@@ -1,0 +1,21 @@
+﻿<Window x:Class="VB6ExtensionsUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vb="clr-namespace:VB6Extensions.Parser;assembly=VB6Extensions"
+        Title="{Binding Name}" Height="350" Width="525">
+    <Grid>
+        <TreeView ItemsSource="{Binding Nodes}">
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate DataType="vb:MethodNode" ItemsSource="{Binding Nodes}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding Icon}" />
+                            <TextBlock Text="{Binding}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+    </Grid>
+</Window>
