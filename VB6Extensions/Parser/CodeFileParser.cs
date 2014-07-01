@@ -14,7 +14,6 @@ namespace VB6Extensions.Parser
     public interface ISyntaxTree
     {
         string Name { get; }
-        IEnumerable<IAttribute> Attributes { get; }
         IList<ISyntaxTree> Nodes { get; }
     }
 
@@ -48,14 +47,8 @@ namespace VB6Extensions.Parser
                 var dataSourceBehavior = content[5].Trim();
                 var mtsTransactionMode = content[6].Trim();
 
-                attributes.Add(attributeParser.Parse(content[8].Trim()));
-                attributes.Add(attributeParser.Parse(content[9].Trim()));
-                attributes.Add(attributeParser.Parse(content[10].Trim()));
-                attributes.Add(attributeParser.Parse(content[11].Trim()));
-                attributes.Add(attributeParser.Parse(content[12].Trim()));
-
                 var regex = new Regex(@"\=\s\-?(?<IntValue>\d+)\s");
-                result = new ClassModule(fileName, attributes)
+                result = new ClassModule(fileName)
                                 {
                                     DataBindingBehavior = int.Parse(regex.Match(dataBindingBehavior).Groups["IntValue"].Value),
                                     DataSourceBehavior = int.Parse(regex.Match(dataSourceBehavior).Groups["IntValue"].Value),
@@ -64,12 +57,18 @@ namespace VB6Extensions.Parser
                                     Persistable = int.Parse(regex.Match(persistable).Groups["IntValue"].Value)
                                 };
 
+                result.Nodes.Add(AttributeNode.Parse(content[8].Trim()));
+                result.Nodes.Add(AttributeNode.Parse(content[9].Trim()));
+                result.Nodes.Add(AttributeNode.Parse(content[10].Trim()));
+                result.Nodes.Add(AttributeNode.Parse(content[11].Trim()));
+                result.Nodes.Add(AttributeNode.Parse(content[12].Trim()));
+
                 currentLine = 13;
             }
             else
             {
-                attributes.Add(attributeParser.Parse(content[0].Trim()));
-                result = new CodeModule(fileName, attributes);
+                result = new CodeModule(fileName);
+                result.Nodes.Add(AttributeNode.Parse(content[0].Trim()));
 
                 currentLine = 1;
             }
@@ -87,6 +86,13 @@ namespace VB6Extensions.Parser
             var isDeclarationSection = true;
             while (isDeclarationSection)
             {
+                if (content[currentLine].Trim().StartsWith("'"))
+                {
+                    // comment node
+                    currentLine++;
+                    continue;
+                }
+
                 var line = content[currentLine];
                 isDeclarationSection =  !(
                                                line.Contains(ReservedKeywords.Property)
@@ -97,24 +103,25 @@ namespace VB6Extensions.Parser
                 {
                     currentLine++;
                     var match = regex.Match(line);
+                    ISyntaxTree node = null;
                     if (match.Success && !line.StartsWith(ReservedKeywords.Implements))
                     {
                         if (match.Groups["keyword"].Captures.Count == 2)
                         {
-                            result.Add(new DeclarationNode(match.Groups["keyword"].Captures[0].Value, 
+                            node = new DeclarationNode(match.Groups["keyword"].Captures[0].Value, 
                                                            match.Groups["keyword"].Captures[1].Value,
                                                            match.Groups["identifier"].Value,
                                                            match.Groups["arraySize"].Value,
                                                            match.Groups["initializer"].Value,
-                                                           match.Groups["type"].Value));
+                                                           match.Groups["type"].Value);
                         }
                         else
                         {
-                            result.Add(new DeclarationNode(null, match.Groups["keyword"].Value,
+                            node = new DeclarationNode(null, match.Groups["keyword"].Value,
                                                                  match.Groups["identifier"].Value,
                                                                  match.Groups["arraySize"].Value,
                                                                  match.Groups["initializer"].Value,
-                                                                 match.Groups["type"].Value));
+                                                                 match.Groups["type"].Value);
                         }
                     }
                     else if(line.StartsWith(ReservedKeywords.Implements))
@@ -122,9 +129,39 @@ namespace VB6Extensions.Parser
                         var implements = Regex.Match(line, ReservedKeywords.Implements + @"\s(?<type>[a-zA-Z][_a-zA-Z0-9]*)$");
                         if (implements.Success)
                         {
-                            var reference = new ReferenceNode(implements.Groups["type"].Value);
-                            result.Add(new InterfaceNode(reference));
+                            var reference = new TypeReferenceNode(implements.Groups["type"].Value);
+                            node = new InterfaceNode(reference);
                         }
+                    }
+
+                    if (node != null && node.Name == ReservedKeywords.Type)
+                    {
+                        while(content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, ReservedKeywords.Type))
+                        {
+                            var member = Regex.Match(content[currentLine].Trim(), @"(?<identifier>\w+)(?<arraySize>\(.*\))?(\s+As\s+?(((?<initializer>New)\s+)?)(?<type>\w+(\.\w+)?))$");
+                            if (member.Success)
+                            {
+                                node.Nodes.Add(new DeclarationNode(null, member.Groups["identifier"].Value, member.Groups["identifier"].Value, member.Groups["arraySize"].Value, member.Groups["initializer"].Value, member.Groups["type"].Value));
+                            }
+                            currentLine++;
+                        }
+                    }
+                    else if (node != null && node.Name == ReservedKeywords.Enum)
+                    {
+                        while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, ReservedKeywords.Enum))
+                        {
+                            var member = Regex.Match(content[currentLine].Trim(), @"(?<identifier>\w+)(\s\=\s(?<value>.*))?$");
+                            if (member.Success)
+                            {
+                                node.Nodes.Add(new EnumMemberNode(member.Groups["identifier"].Value));
+                            }
+                            currentLine++;
+                        }
+                    }
+
+                    if (node != null)
+                    {
+                        result.Add(node);
                     }
                 }
             }
@@ -137,13 +174,19 @@ namespace VB6Extensions.Parser
             //todo: refactor / extract methods/classes, and recurse
 
             var result = new List<ISyntaxTree>();
-            var attributeParser = new AttributeParser();
 
             var pattern = @"((?<keyword>Public|Private|Friend)\s)?(?<keyword>Property|Function|Sub)\s+((?<keyword>Get|Let|Set)\s+)?(?<name>[a-zA-Z][a-zA-Z0-9_]*)(\((?<parameters>.*)\))?(\s+As\s+(?<type>.*))?$";
             var regex = new Regex(pattern);
 
             while (currentLine < content.Length)
             {
+                if (content[currentLine].Trim().StartsWith("'"))
+                {
+                    // comment node
+                    currentLine++;
+                    continue;
+                }
+
                 var match = regex.Match(content[currentLine]);
                 if (match.Success)
                 {
@@ -160,10 +203,10 @@ namespace VB6Extensions.Parser
                             currentLine++;
                             while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, match.Groups["keyword"].Captures[1].Value))
                             {
-                                var attribute = attributeParser.Parse(content[currentLine]);
+                                var attribute = AttributeNode.Parse(content[currentLine]);
                                 if (attribute != null)
                                 {
-                                    node.AddAttribute(attribute);
+                                    node.Nodes.Add(attribute);
                                 }
                                 else
                                 {
@@ -211,10 +254,10 @@ namespace VB6Extensions.Parser
                             currentLine++;
                             while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, keyword))
                             {
-                                var attribute = attributeParser.Parse(content[currentLine]);
+                                var attribute = AttributeNode.Parse(content[currentLine]);
                                 if (attribute != null)
                                 {
-                                    node.AddAttribute(attribute);
+                                    node.Nodes.Add(attribute);
                                 }
                                 else
                                 {
@@ -265,10 +308,10 @@ namespace VB6Extensions.Parser
                             currentLine++;
                             while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, keyword))
                             {
-                                var attribute = attributeParser.Parse(content[currentLine]);
+                                var attribute = AttributeNode.Parse(content[currentLine]);
                                 if (attribute != null)
                                 {
-                                    node.AddAttribute(attribute);
+                                    node.Nodes.Add(attribute);
                                 }
                                 else
                                 {
@@ -317,10 +360,10 @@ namespace VB6Extensions.Parser
                             currentLine++;
                             while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, keyword))
                             {
-                                var attribute = attributeParser.Parse(content[currentLine]);
+                                var attribute = AttributeNode.Parse(content[currentLine]);
                                 if (attribute != null)
                                 {
-                                    node.AddAttribute(attribute);
+                                    node.Nodes.Add(attribute);
                                 }
                                 else
                                 {
@@ -384,9 +427,60 @@ namespace VB6Extensions.Parser
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
 
+    public class AttributeNode : ISyntaxTree, IAttribute
+    {
+        public AttributeNode(string name, string value)
+            : this(name, value, null)
+        { }
+
+        public AttributeNode(string name, string value, MemberReferenceNode member)
+        {
+            Nodes = new List<ISyntaxTree>();
+            if (member != null)
+            {
+                Nodes.Add(member);
+            }
+
+            Name = name;
+            Value = value.StartsWith("\"")
+                ? value.Substring(1, value.Length - 2)
+                : value;
+        }
+
+        public string Name { get; private set; }
+        public string Value { get; set; }
+
+        public IEnumerable<IAttribute> Attributes { get; private set; }
+        public IList<ISyntaxTree> Nodes { get; private set; }
+
+        public static ISyntaxTree Parse(string instruction)
+        {
+            var syntax = @"^Attribute\s((?<Member>[a-zA-Z][a-zA-Z0-9_]*)\.)?(?<Name>VB_\w+)\s=\s(?<Value>.*)$";
+            var regex = new Regex(syntax);
+
+            if (!regex.IsMatch(instruction))
+            {
+                return null;
+            }
+
+            var match = regex.Match(instruction);
+            var member = match.Groups["Member"].Value;
+            var name = match.Groups["Name"].Value;
+            var value = match.Groups["Value"].Value;
+
+            MemberReferenceNode reference = null;
+            if (!string.IsNullOrEmpty(member))
+            {
+                reference = new MemberReferenceNode(member);
+            }
+
+            return new AttributeNode(name, value, reference);
+        }
+    }
+
     public class InterfaceNode : ISyntaxTree
     {
-        public InterfaceNode(ReferenceNode reference)
+        public InterfaceNode(TypeReferenceNode reference)
         {
             Name = reference.Name;
             Nodes = new List<ISyntaxTree> { reference };
@@ -420,13 +514,7 @@ namespace VB6Extensions.Parser
         public string Accessor { get; private set; }
         public string Name { get; private set; }
 
-        private readonly IList<IAttribute> _attributes = new List<IAttribute>();
-        public IEnumerable<IAttribute> Attributes { get { return _attributes; } }
-        public void AddAttribute(IAttribute attribute)
-        {
-            _attributes.Add(attribute);
-        }
-
+        public ISyntaxTree Parent { get; private set; }
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
 
@@ -539,8 +627,8 @@ namespace VB6Extensions.Parser
     {
         public ModuleNode(ISyntaxTree header, IEnumerable<ISyntaxTree> declarations, IEnumerable<ISyntaxTree> members)
         {
-            Name = header.Attributes.First().Value;
-            Nodes = new List<ISyntaxTree>(declarations.Concat(members));
+            Name = header.Nodes.OfType<AttributeNode>().First().Value;
+            Nodes = new List<ISyntaxTree>(header.Nodes.Concat(declarations).Concat(members));
         }
 
         public string Name { get; private set; }
@@ -573,6 +661,13 @@ namespace VB6Extensions.Parser
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
 
+    public class EnumMemberNode : IdentifierNode
+    {
+        public EnumMemberNode(string identifier)
+            : base(identifier, null)
+        { }
+    }
+
     public class IdentifierNode : ISyntaxTree
     {
         public IdentifierNode(string identifier, string type)
@@ -591,11 +686,11 @@ namespace VB6Extensions.Parser
 
             if (!string.IsNullOrEmpty(initializer))
             {
-                Nodes.Add(new InitializerNode(initializer, type));
+                Nodes.Add(new InitializerNode(initializer, new TypeReferenceNode(type)));
             }
             else if (!string.IsNullOrEmpty(type))
             {
-                Nodes.Add(new ReferenceNode(type));
+                Nodes.Add(new TypeReferenceNode(type));
             }
         }
 
@@ -623,9 +718,9 @@ namespace VB6Extensions.Parser
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
 
-    public class ReferenceNode : ISyntaxTree
+    public class TypeReferenceNode : ISyntaxTree
     {
-        public ReferenceNode(string type)
+        public TypeReferenceNode(string type)
         {
             Name = type;
             Nodes = new List<ISyntaxTree>();
@@ -638,15 +733,27 @@ namespace VB6Extensions.Parser
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
 
+    public class MemberReferenceNode : ISyntaxTree
+    {
+        public MemberReferenceNode(string member)
+        {
+            Name = member;
+            Nodes = new List<ISyntaxTree>();
+        }
+
+        public string Name { get; private set; }
+
+        public IEnumerable<IAttribute> Attributes { get; private set; }
+
+        public IList<ISyntaxTree> Nodes { get; private set; }
+    }
+
     public class InitializerNode : ISyntaxTree
     {
-        public InitializerNode(string keyword, string type)
+        public InitializerNode(string keyword, TypeReferenceNode typeNode)
         {
             Name = keyword;
-            Nodes = new List<ISyntaxTree>
-            {
-                new ReferenceNode(type)
-            };
+            Nodes = new List<ISyntaxTree> { typeNode };
         }
 
         public string Name { get; private set; }

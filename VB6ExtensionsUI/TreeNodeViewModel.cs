@@ -17,30 +17,32 @@ namespace VB6ExtensionsUI
 
         public TreeNodeViewModel(ISyntaxTree node)
         {
+            var moduleNode = node as CodeModule;
+
             _node = node;
             Icon = SetIcon();
 
-            DescriptionVisibility = Visibility.Collapsed;
-            if (node.Attributes != null)
+            AttributeVisibility = Visibility.Collapsed;
+
+            if (node is AttributeNode)
             {
-                var descriptionAttribute = node.Attributes.FirstOrDefault(a => a.Name.EndsWith("Description"));
-                if (descriptionAttribute != null && !string.IsNullOrEmpty(descriptionAttribute.Name))
-                {
-                    Description = Regex.Match(descriptionAttribute.Value, @"\""(?<value>.*)\""").Groups["value"].Value;
-                    DescriptionVisibility = Visibility.Visible;
-                }
+                AttributeValue = (node as AttributeNode).Value;
+                AttributeVisibility = Visibility.Visible;
             }
         }
 
-        public Visibility DescriptionVisibility { get; private set; }
-
-        public string Description { get; private set; }
+        public Visibility AttributeVisibility { get; private set; }
+        public string AttributeValue { get; private set; }
 
         public string Icon { get; private set; }
 
         private string SetIcon()
         {
-            if (_node is MethodNode)
+            if (_node is AttributeNode)
+            {
+                return "icons/assembly.png";
+            }
+            else if (_node is MethodNode)
             {
                 var node = _node as MethodNode;
                 switch (node.Modifier)
@@ -77,6 +79,10 @@ namespace VB6ExtensionsUI
             {
                 return "icons/variable.png";
             }
+            else if (_node is EnumMemberNode)
+            {
+                return "icons/enum_member.png";
+            }
             else if (_node is DeclarationNode)
             {
                 var node = _node as DeclarationNode;
@@ -93,13 +99,19 @@ namespace VB6ExtensionsUI
                     switch (node.Modifier)
                     {
                         case AccessModifier.Private:
-                            return "icons/field_private.png";
+                            return node.Name == "Enum" ? "icons/enum_private.png" 
+                                                       : node.Name == "Type" ? "icons/struct_private.png"
+                                                                             : "icons/field_private.png";
                             break;
                         case AccessModifier.Friend:
-                            return "icons/field_friend.png";
+                            return node.Name == "Enum" ? "icons/enum_friend.png" 
+                                                       : node.Name == "Type" ? "icons/struct_friend.png"
+                                                                             : "icons/field_friend.png";
                             break;
                         default:
-                            return "icons/field.png";
+                            return node.Name == "Enum" ? "icons/enum.png" 
+                                                       : node.Name == "Type" ? "icons/struct.png" 
+                                                                             : "icons/field.png";
                             break;
                     }
                 }
@@ -108,9 +120,9 @@ namespace VB6ExtensionsUI
             {
                 return "icons/interface.png";
             }
-            else if (_node is ReferenceNode)
+            else if (_node is TypeReferenceNode)
             {
-                var node = _node as ReferenceNode;
+                var node = _node as TypeReferenceNode;
                 if (new[]{"String", "Byte", "Boolean", "Integer", "Date", "Long", "Double", "Single", "Variant", "Currency"}.Contains(node.Name))
                 {
                     return "icons/library.png";
@@ -131,11 +143,6 @@ namespace VB6ExtensionsUI
         public string Name
         {
             get { return _node.Name + _description; }
-        }
-
-        public IEnumerable<VB6Extensions.Lexer.Attributes.IAttribute> Attributes
-        {
-            get { return _node.Attributes; }
         }
 
         public IList<ISyntaxTree> Nodes

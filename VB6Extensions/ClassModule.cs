@@ -15,23 +15,9 @@ namespace VB6Extensions
         public IEnumerable<IAttribute> Attributes { get; private set; }
         public IList<ISyntaxTree> Nodes { get; private set; }
 
-        public CodeModule(string fileName, IEnumerable<IAttribute> attributes)
+        public CodeModule(string fileName)
         {
-            IAttribute nameAttribute;
-            try
-            {
-                nameAttribute = attributes.First();
-                if (string.IsNullOrEmpty(nameAttribute.Value))
-                    throw new FormatException("[VB_Name] attribute value cannot be empty.");
-            }
-            catch (NullReferenceException exception)
-            {
-                throw new ArgumentException("CodeModule requires a [VB_Name] attribute, which must be specified first.", exception);
-            }
-
             _fileName = fileName;
-
-            Attributes = attributes;
             Nodes = new List<ISyntaxTree>();
         }
 
@@ -53,8 +39,8 @@ namespace VB6Extensions
 
     public class ClassModule : CodeModule
     {
-        public ClassModule(string fileName, IEnumerable<IAttribute> attributes)
-            :base(fileName, attributes)
+        public ClassModule(string fileName)
+            :base(fileName)
         {
         }
 

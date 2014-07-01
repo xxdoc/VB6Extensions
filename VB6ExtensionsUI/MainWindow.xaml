@@ -10,14 +10,14 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Image Source="{Binding Icon}" />
-                            <TextBlock Text="{Binding}" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding}" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+                                    <TextBlock Margin="4,0,0,0" Text="{Binding AttributeValue}" Visibility="{Binding AttributeVisibility}" Foreground="Blue"/>
+                                </StackPanel>
+                            </StackPanel>
                         </StackPanel>
-                        <TextBlock Text="{Binding Name}" FontWeight="Bold" />
-                        <Label Content="{Binding Description}" 
-                               Visibility="{Binding DescriptionVisibility}" 
-                               Foreground="Green" FontSize="10">
-                            <!-- fix forecolor when selected -->
-                        </Label>
                     </StackPanel>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>

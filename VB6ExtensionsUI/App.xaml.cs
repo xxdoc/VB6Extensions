@@ -19,7 +19,7 @@ namespace VB6ExtensionsUI
             base.OnStartup(e);
 
             var parser = new CodeFileParser();
-            var tree = parser.Parse(@"VB6\StringHelper.cls");
+            var tree = parser.Parse(@"VB6\List.cls");
             var viewModel = new TreeNodeViewModel(tree);
 
             var view = new MainWindow();
