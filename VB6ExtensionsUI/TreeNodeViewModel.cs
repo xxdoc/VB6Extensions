@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using VB6Extensions;
 using VB6Extensions.Parser;
 
@@ -19,15 +20,19 @@ namespace VB6ExtensionsUI
             _node = node;
             Icon = SetIcon();
 
+            DescriptionVisibility = Visibility.Collapsed;
             if (node.Attributes != null)
             {
                 var descriptionAttribute = node.Attributes.FirstOrDefault(a => a.Name.EndsWith("Description"));
                 if (descriptionAttribute != null && !string.IsNullOrEmpty(descriptionAttribute.Name))
                 {
                     Description = Regex.Match(descriptionAttribute.Value, @"\""(?<value>.*)\""").Groups["value"].Value;
+                    DescriptionVisibility = Visibility.Visible;
                 }
             }
         }
+
+        public Visibility DescriptionVisibility { get; private set; }
 
         public string Description { get; private set; }
 

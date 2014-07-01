@@ -13,7 +13,11 @@
                             <TextBlock Text="{Binding}" />
                         </StackPanel>
                         <TextBlock Text="{Binding Name}" FontWeight="Bold" />
-                        <Label Content="{Binding Description}" Foreground="Green" MinHeight="0" />
+                        <Label Content="{Binding Description}" 
+                               Visibility="{Binding DescriptionVisibility}" 
+                               Foreground="Green" FontSize="10">
+                            <!-- fix forecolor when selected -->
+                        </Label>
                     </StackPanel>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>

@@ -134,6 +134,8 @@ namespace VB6Extensions.Parser
 
         private IEnumerable<ISyntaxTree> ParseMembers(string[] content, ref int currentLine)
         {
+            //todo: refactor / extract methods/classes, and recurse
+
             var result = new List<ISyntaxTree>();
             var attributeParser = new AttributeParser();
 
@@ -165,6 +167,32 @@ namespace VB6Extensions.Parser
                                 }
                                 else
                                 {
+                                    var trimmed = content[currentLine].Trim();
+                                    if (Regex.IsMatch(trimmed, @"If\s.*Then$"))
+                                    {
+                                        var ifBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, ReservedKeywords.If))
+                                        {
+                                            ifBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+                                        currentLine++;
+                                        body.Nodes.Add(ifBlock);
+                                    }
+                                    else if (Regex.IsMatch(trimmed, @"For\s.*$"))
+                                    {
+                                        var forLoopBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != ReservedKeywords.Next)
+                                        {
+                                            forLoopBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+                                        currentLine++;
+                                        body.Nodes.Add(forLoopBlock);
+                                    }
+
                                     body.Nodes.Add(new CodeBlockNode(content[currentLine]));
                                 }
                                 currentLine++;
@@ -190,6 +218,32 @@ namespace VB6Extensions.Parser
                                 }
                                 else
                                 {
+                                    var trimmed = content[currentLine].Trim();
+                                    if (Regex.IsMatch(trimmed, @"If\s.*Then$"))
+                                    {
+                                        var ifBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, ReservedKeywords.If))
+                                        {
+                                            ifBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+                                        currentLine++;
+                                        body.Nodes.Add(ifBlock);
+                                    }
+                                    else if (Regex.IsMatch(trimmed, @"For\s.*$"))
+                                    {
+                                        var forLoopBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != ReservedKeywords.Next)
+                                        {
+                                            forLoopBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+                                        currentLine++;
+                                        body.Nodes.Add(forLoopBlock);
+                                    }
+
                                     body.Nodes.Add(new CodeBlockNode(content[currentLine]));
                                 }
                                 currentLine++;
@@ -218,6 +272,32 @@ namespace VB6Extensions.Parser
                                 }
                                 else
                                 {
+                                    var trimmed = content[currentLine].Trim();
+                                    if (Regex.IsMatch(trimmed, @"If\s.*Then$"))
+                                    {
+                                        var ifBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, ReservedKeywords.If))
+                                        {
+                                            ifBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+                                        currentLine++;
+                                        body.Nodes.Add(ifBlock);
+                                    }
+                                    else if (Regex.IsMatch(trimmed, @"For\s.*$"))
+                                    {
+                                        var forLoopBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != ReservedKeywords.Next)
+                                        {
+                                            forLoopBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+                                        currentLine++;
+                                        body.Nodes.Add(forLoopBlock);
+                                    }
+                                    
                                     body.Nodes.Add(new CodeBlockNode(content[currentLine]));
                                 }
 
@@ -244,6 +324,34 @@ namespace VB6Extensions.Parser
                                 }
                                 else
                                 {
+                                    var trimmed = content[currentLine].Trim();
+                                    if (Regex.IsMatch(trimmed, @"If\s.*Then$"))
+                                    {
+                                        var ifBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, ReservedKeywords.If))
+                                        {
+                                            ifBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+
+                                        currentLine++;
+                                        body.Nodes.Add(ifBlock);
+                                    }
+                                    else if (Regex.IsMatch(trimmed, @"For\s.*$"))
+                                    {
+                                        var forLoopBlock = new CodeBlockNode(content[currentLine]);
+                                        currentLine++;
+                                        while (content[currentLine].Trim() != ReservedKeywords.Next)
+                                        {
+                                            forLoopBlock.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                            currentLine++;
+                                        }
+
+                                        currentLine++;
+                                        body.Nodes.Add(forLoopBlock);
+                                    }
+
                                     body.Nodes.Add(new CodeBlockNode(content[currentLine]));
                                 }
 
