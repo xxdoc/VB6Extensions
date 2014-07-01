@@ -6,13 +6,14 @@
     <Grid>
         <TreeView ItemsSource="{Binding Nodes}">
             <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate DataType="vb:MethodNode" ItemsSource="{Binding Nodes}">
+                <HierarchicalDataTemplate ItemsSource="{Binding Nodes}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Image Source="{Binding Icon}" />
                             <TextBlock Text="{Binding}" />
                         </StackPanel>
                         <TextBlock Text="{Binding Name}" FontWeight="Bold" />
+                        <Label Content="{Binding Description}" Foreground="Green" MinHeight="0" />
                     </StackPanel>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>

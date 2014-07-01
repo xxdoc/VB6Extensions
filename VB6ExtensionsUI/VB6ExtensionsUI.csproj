@@ -163,7 +163,7 @@
     <Resource Include="Icons\misc_document.png" />
     <Resource Include="Icons\module.png" />
     <Resource Include="Icons\module_private.png" />
-    <Resource Include="Icons\namespace.png" />
+    <Resource Include="Icons\scope.png" />
     <Resource Include="Icons\operator.png" />
     <Resource Include="Icons\property.png" />
     <Resource Include="Icons\property_private.png" />
@@ -176,6 +176,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Icons\misc_field.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\class_reference.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

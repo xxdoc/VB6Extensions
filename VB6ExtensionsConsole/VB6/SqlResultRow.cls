@@ -19,6 +19,7 @@ End Type
 
 Private this As tRow
 Option Explicit
+Implements IResultRow
 
 Private Sub Class_Initialize()
     ReDim this.Values(0 To 0)

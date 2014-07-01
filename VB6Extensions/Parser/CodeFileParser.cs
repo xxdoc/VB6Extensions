@@ -93,12 +93,11 @@ namespace VB6Extensions.Parser
                                             || line.Contains(ReservedKeywords.Sub)
                                             || line.Contains(ReservedKeywords.Function)
                                          );
-                currentLine++;
-
                 if (isDeclarationSection)
                 {
+                    currentLine++;
                     var match = regex.Match(line);
-                    if (match.Success)
+                    if (match.Success && !line.StartsWith(ReservedKeywords.Implements))
                     {
                         if (match.Groups["keyword"].Captures.Count == 2)
                         {
@@ -118,6 +117,15 @@ namespace VB6Extensions.Parser
                                                                  match.Groups["type"].Value));
                         }
                     }
+                    else if(line.StartsWith(ReservedKeywords.Implements))
+                    {
+                        var implements = Regex.Match(line, ReservedKeywords.Implements + @"\s(?<type>[a-zA-Z][_a-zA-Z0-9]*)$");
+                        if (implements.Success)
+                        {
+                            var reference = new ReferenceNode(implements.Groups["type"].Value);
+                            result.Add(new InterfaceNode(reference));
+                        }
+                    }
                 }
             }
 
@@ -127,6 +135,7 @@ namespace VB6Extensions.Parser
         private IEnumerable<ISyntaxTree> ParseMembers(string[] content, ref int currentLine)
         {
             var result = new List<ISyntaxTree>();
+            var attributeParser = new AttributeParser();
 
             var pattern = @"((?<keyword>Public|Private|Friend)\s)?(?<keyword>Property|Function|Sub)\s+((?<keyword>Get|Let|Set)\s+)?(?<name>[a-zA-Z][a-zA-Z0-9_]*)(\((?<parameters>.*)\))?(\s+As\s+(?<type>.*))?$";
             var regex = new Regex(pattern);
@@ -145,6 +154,23 @@ namespace VB6Extensions.Parser
                             var node = new PropertyNode(modifier, match.Groups["name"].Value,
                                                         keyword, match.Groups["parameters"].Value,
                                                         match.Groups["type"].Value);
+                            var body = new CodeBlockNode(match.Groups["name"].Value);
+                            currentLine++;
+                            while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, match.Groups["keyword"].Captures[1].Value))
+                            {
+                                var attribute = attributeParser.Parse(content[currentLine]);
+                                if (attribute != null)
+                                {
+                                    node.AddAttribute(attribute);
+                                }
+                                else
+                                {
+                                    body.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                }
+                                currentLine++;
+                            }
+
+                            node.Nodes.Add(body);
                             result.Add(node);
                         }
                         else
@@ -153,6 +179,23 @@ namespace VB6Extensions.Parser
                             var node = new MethodNode(modifier, match.Groups["name"].Value,
                                                         keyword, match.Groups["parameters"].Value,
                                                         match.Groups["type"].Value);
+                            var body = new CodeBlockNode(match.Groups["name"].Value);
+                            currentLine++;
+                            while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, keyword))
+                            {
+                                var attribute = attributeParser.Parse(content[currentLine]);
+                                if (attribute != null)
+                                {
+                                    node.AddAttribute(attribute);
+                                }
+                                else
+                                {
+                                    body.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                }
+                                currentLine++;
+                            }
+
+                            node.Nodes.Add(body);
                             result.Add(node);
                         }
                     }
@@ -164,6 +207,24 @@ namespace VB6Extensions.Parser
                             var node = new PropertyNode(null, match.Groups["name"].Value,
                                                         keyword, match.Groups["parameters"].Value,
                                                         match.Groups["type"].Value);
+                            var body = new CodeBlockNode(match.Groups["name"].Value);
+                            currentLine++;
+                            while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, keyword))
+                            {
+                                var attribute = attributeParser.Parse(content[currentLine]);
+                                if (attribute != null)
+                                {
+                                    node.AddAttribute(attribute);
+                                }
+                                else
+                                {
+                                    body.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                }
+
+                                currentLine++;
+                            }
+
+                            node.Nodes.Add(body);
                             result.Add(node);
                         }
                         else
@@ -172,6 +233,24 @@ namespace VB6Extensions.Parser
                             var node = new MethodNode(null, match.Groups["name"].Value,
                                                         keyword, match.Groups["parameters"].Value,
                                                         match.Groups["type"].Value);
+                            var body = new CodeBlockNode(match.Groups["name"].Value);
+                            currentLine++;
+                            while (content[currentLine].Trim() != string.Format("{0} {1}", ReservedKeywords.End, keyword))
+                            {
+                                var attribute = attributeParser.Parse(content[currentLine]);
+                                if (attribute != null)
+                                {
+                                    node.AddAttribute(attribute);
+                                }
+                                else
+                                {
+                                    body.Nodes.Add(new CodeBlockNode(content[currentLine]));
+                                }
+
+                                currentLine++;
+                            }
+
+                            node.Nodes.Add(body);
                             result.Add(node);
                         }
                     }
@@ -182,6 +261,32 @@ namespace VB6Extensions.Parser
 
             return result;
         }
+    }
+
+    public class CodeBlockNode : ISyntaxTree
+    {
+        public CodeBlockNode(string name)
+        {
+            Name = name;
+            Nodes = new List<ISyntaxTree>();
+        }
+
+        public string Name { get; private set; }
+        public IEnumerable<IAttribute> Attributes { get; private set; }
+        public IList<ISyntaxTree> Nodes { get; private set; }
+    }
+
+    public class InterfaceNode : ISyntaxTree
+    {
+        public InterfaceNode(ReferenceNode reference)
+        {
+            Name = reference.Name;
+            Nodes = new List<ISyntaxTree> { reference };
+        }
+
+        public string Name { get; private set; }
+        public IEnumerable<IAttribute> Attributes { get; private set; }
+        public IList<ISyntaxTree> Nodes { get; private set; }
     }
 
     public class PropertyNode : ISyntaxTree
@@ -207,7 +312,12 @@ namespace VB6Extensions.Parser
         public string Accessor { get; private set; }
         public string Name { get; private set; }
 
-        public IEnumerable<IAttribute> Attributes { get; private set; }
+        private readonly IList<IAttribute> _attributes = new List<IAttribute>();
+        public IEnumerable<IAttribute> Attributes { get { return _attributes; } }
+        public void AddAttribute(IAttribute attribute)
+        {
+            _attributes.Add(attribute);
+        }
 
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
@@ -238,7 +348,12 @@ namespace VB6Extensions.Parser
         public string Accessor { get; private set; }
         public string Name { get; private set; }
 
-        public IEnumerable<IAttribute> Attributes { get; private set; }
+        private readonly IList<IAttribute> _attributes = new List<IAttribute>();
+        public IEnumerable<IAttribute> Attributes { get { return _attributes; } }
+        public void AddAttribute(IAttribute attribute)
+        {
+            _attributes.Add(attribute);
+        }
 
         public IList<ISyntaxTree> Nodes { get; private set; }
     }
@@ -370,8 +485,7 @@ namespace VB6Extensions.Parser
             {
                 Nodes.Add(new InitializerNode(initializer, type));
             }
-            
-            if (!string.IsNullOrEmpty(type))
+            else if (!string.IsNullOrEmpty(type))
             {
                 Nodes.Add(new ReferenceNode(type));
             }
