@@ -10,12 +10,12 @@ using VB6Extensions.Parser;
 
 namespace VB6ExtensionsUI
 {
-    public class TreeNodeViewModel : ISyntaxTree
+    public class TreeNodeViewModel : ISyntaxTreeNode
     {
-        private readonly ISyntaxTree _node;
+        private readonly ISyntaxTreeNode _node;
         private string _description;
 
-        public TreeNodeViewModel(ISyntaxTree node)
+        public TreeNodeViewModel(ISyntaxTreeNode node)
         {
             var moduleNode = node as CodeModule;
 
@@ -88,9 +88,9 @@ namespace VB6ExtensionsUI
                 var node = _node as DeclarationNode;
                 if (node.Modifier == null)
                 {
-                    if (node.Name == "Private")
+                    if (node.NodeName == "Private")
                         return "icons/field_private.png";
-                    if (node.Name == "Friend")
+                    if (node.NodeName == "Friend")
                         return "icons/field_friend.png";
                     return "icons/field.png";
                 }
@@ -99,18 +99,18 @@ namespace VB6ExtensionsUI
                     switch (node.Modifier)
                     {
                         case AccessModifier.Private:
-                            return node.Name == "Enum" ? "icons/enum_private.png" 
-                                                       : node.Name == "Type" ? "icons/struct_private.png"
+                            return node.NodeName == "Enum" ? "icons/enum_private.png"
+                                                       : node.NodeName == "Type" ? "icons/struct_private.png"
                                                                              : "icons/field_private.png";
                             break;
                         case AccessModifier.Friend:
-                            return node.Name == "Enum" ? "icons/enum_friend.png" 
-                                                       : node.Name == "Type" ? "icons/struct_friend.png"
+                            return node.NodeName == "Enum" ? "icons/enum_friend.png"
+                                                       : node.NodeName == "Type" ? "icons/struct_friend.png"
                                                                              : "icons/field_friend.png";
                             break;
                         default:
-                            return node.Name == "Enum" ? "icons/enum.png" 
-                                                       : node.Name == "Type" ? "icons/struct.png" 
+                            return node.NodeName == "Enum" ? "icons/enum.png"
+                                                       : node.NodeName == "Type" ? "icons/struct.png" 
                                                                              : "icons/field.png";
                             break;
                     }
@@ -123,7 +123,7 @@ namespace VB6ExtensionsUI
             else if (_node is TypeReferenceNode)
             {
                 var node = _node as TypeReferenceNode;
-                if (new[]{"String", "Byte", "Boolean", "Integer", "Date", "Long", "Double", "Single", "Variant", "Currency"}.Contains(node.Name))
+                if (new[]{"String", "Byte", "Boolean", "Integer", "Date", "Long", "Double", "Single", "Variant", "Currency"}.Contains(node.NodeName))
                 {
                     return "icons/library.png";
                 }
@@ -140,16 +140,17 @@ namespace VB6ExtensionsUI
             return "icons/misc_field.png";
         }
 
-        public string Name
+        public string NodeName
         {
-            get { return _node.Name + _description; }
+            get { return _node.NodeName + _description; }
+            set { _node.NodeName = value; }
         }
 
-        public IList<ISyntaxTree> Nodes
+        public IList<ISyntaxTreeNode> Nodes
         {
             get 
             {
-                var result = new List<ISyntaxTree>();
+                var result = new List<ISyntaxTreeNode>();
                 foreach (var node in _node.Nodes)
                 {
                     result.Add(new TreeNodeViewModel(node));
@@ -161,6 +162,11 @@ namespace VB6ExtensionsUI
         public override string ToString()
         {
             return _node.ToString();
+        }
+
+        public SyntaxTreeNodeType NodeType
+        {
+            get { return _node.NodeType; }
         }
     }
 }

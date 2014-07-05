@@ -42,7 +42,6 @@
     <Compile Include="Accessibility.cs" />
     <Compile Include="ClassModule.cs" />
     <Compile Include="Lexer\Attributes\Attribute.cs" />
-    <Compile Include="Parser\AttributeParser.cs" />
     <Compile Include="Lexer\IIdentifier.cs" />
     <Compile Include="Lexer\ILexer.cs" />
     <Compile Include="Lexer\InvalidSyntaxException.cs" />
@@ -52,6 +51,7 @@
     <Compile Include="Lexer\Tokens\IToken.cs" />
     <Compile Include="Lexer\Tokens\UserDefinedTypeToken.cs" />
     <Compile Include="Parser\CodeFileParser.cs" />
+    <Compile Include="Parser\SyntaxTreeNode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\ReservedKeywords.Designer.cs">
       <AutoGen>True</AutoGen>

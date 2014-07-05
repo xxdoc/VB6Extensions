@@ -10,29 +10,33 @@ using VB6Extensions.Properties;
 
 namespace VB6Extensions
 {
-    public class CodeModule : ISyntaxTree
+    public class CodeModule : SyntaxTreeNode
     {
-        public IEnumerable<IAttribute> Attributes { get; private set; }
-        public IList<ISyntaxTree> Nodes { get; private set; }
-
         public CodeModule(string fileName)
+            :base(SyntaxTreeNodeType.CodeFileTree, fileName)
         {
             _fileName = fileName;
-            Nodes = new List<ISyntaxTree>();
         }
 
         private readonly string _fileName;
         public string FileName { get { return _fileName; } }
 
-        public string Name 
+        private AttributeNode vbNameAttributeNode
+        {
+            get { return Nodes.OfType<AttributeNode>().FirstOrDefault(node => node.NodeName == "VB_Name"); }
+        }
+
+        public string NodeName
         { 
             get 
             {
-                return Attributes.First().Value.Replace("\"", string.Empty); 
+                var node = vbNameAttributeNode;
+                return node == null ? string.Empty : node.Value;                
             } 
             set
             {
-                Attributes.First().Value = value;
+                var node = vbNameAttributeNode;
+                node.Value = value;
             }
         }
     }
